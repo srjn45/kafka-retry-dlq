@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.github.srjn45"
-version = "1.0.0"
+version = "1.0.1"
 
 repositories {
     mavenCentral()
@@ -80,4 +80,13 @@ tasks.jacocoTestCoverageVerification {
     classDirectories = jacocoTestReport.classDirectories
     sourceDirectories = jacocoTestReport.sourceDirectories
     executionData = jacocoTestReport.executionData
+}
+
+val sourcesJar by tasks.registering(Jar::class) {
+    archiveClassifier.set("sources")
+    from(sourceSets.main.get().allSource)
+}
+
+artifacts {
+    add("archives", sourcesJar.get())
 }
