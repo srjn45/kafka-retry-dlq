@@ -47,15 +47,37 @@ tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
-    finalizedBy(tasks.jacocoTestReport)
+    finalizedBy(tasks.jacocoTestReport, tasks.jacocoTestCoverageVerification)
+}
+
+jacoco {
+    toolVersion = "0.8.10"
 }
 
 tasks.jacocoTestReport {
     dependsOn(tasks.test)
     reports {
         xml.required.set(true)
-        csv.required.set(false)
         html.required.set(true)
         html.outputLocation.set(layout.buildDirectory.dir("jacocoHtml"))
     }
+}
+
+val jacocoTestReport = tasks.named<JacocoReport>("jacocoTestReport").get()
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.test)
+
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.90.toBigDecimal()
+            }
+        }
+    }
+
+    // Use the exact classDirs, sourceDirs, executionData from jacocoTestReport
+    classDirectories = jacocoTestReport.classDirectories
+    sourceDirectories = jacocoTestReport.sourceDirectories
+    executionData = jacocoTestReport.executionData
 }
