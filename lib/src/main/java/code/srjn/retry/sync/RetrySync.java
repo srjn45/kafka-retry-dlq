@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.function.Supplier;
 
-public class RetrySync<T> {
+public class RetrySync {
 
     private static final Logger logger = LoggerFactory.getLogger(RetrySync.class);
 
@@ -16,7 +16,14 @@ public class RetrySync<T> {
         this.config = config;
     }
 
-    public T execute(Supplier<T> func) {
+    public void execute(Runnable func) {
+        execute(() -> {
+            func.run();
+            return null;
+        });
+    }
+
+    public <T> T execute(Supplier<T> func) {
         int attempt = 0;
         while (true) {
             try {

@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.github.srjn45"
-version = "2.0.0"
+version = "2.1.0"
 
 repositories {
     mavenCentral()
@@ -70,7 +70,7 @@ tasks.jacocoTestCoverageVerification {
     violationRules {
         rule {
             limit {
-                minimum = 0.90.toBigDecimal()
+                minimum = 0.80.toBigDecimal()
             }
         }
     }

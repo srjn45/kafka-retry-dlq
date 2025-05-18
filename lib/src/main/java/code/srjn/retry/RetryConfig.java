@@ -1,9 +1,14 @@
 package code.srjn.retry;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class RetryConfig {
+
+    private static final Logger logger = LoggerFactory.getLogger(RetryConfig.class);
 
     private int attempts;
     private long backoff;
@@ -42,6 +47,7 @@ public class RetryConfig {
             }
         }
 
+        logger.debug(String.format("func failed with %s exception", retry ? "retryable" : "skippable"), ex);
         return retry;
     }
 
