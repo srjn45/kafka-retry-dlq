@@ -1,11 +1,14 @@
 package code.srjn.retry;
 
+import code.srjn.retry.sync.RetrySync;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RetrySyncTest {
@@ -16,7 +19,7 @@ class RetrySyncTest {
     void execute_shouldRetryFuncOnFailure() {
         Instant startTime = Instant.now();
         counter.set(3);
-        RetrySync<String> retrySync = new RetrySync<>(RetryConfig.builder().build());
+        RetrySync<String> retrySync = new RetrySync<>(RetryConfig.builder().attempts(3).build());
         String actual = retrySync.execute(() -> hello("srjn"));
         assertThat(actual).isEqualTo("hello srjn");
         Instant endTime = Instant.now();
@@ -41,7 +44,7 @@ class RetrySyncTest {
     void execute_shouldRetryWithLinearBackoff() {
         Instant startTime = Instant.now();
         counter.set(3);
-        RetrySync<String> retrySync = new RetrySync<>(RetryConfig.builder().backoff(100).build());
+        RetrySync<String> retrySync = new RetrySync<>(RetryConfig.builder().attempts(3).backoff(100).build());
         String actual = retrySync.execute(() -> hello("srjn"));
         assertThat(actual).isEqualTo("hello srjn");
         Instant endTime = Instant.now();
@@ -71,4 +74,96 @@ class RetrySyncTest {
         }
         return String.format("hello %s", name);
     }
+
+    @Test
+    void execute_shouldRetryFuncThatReturnsVoidOnFailure() {
+        counter.set(3);
+        RetrySync<Void> retrySync = new RetrySync<>(RetryConfig.builder().attempts(3).build());
+        assertDoesNotThrow(() -> retrySync.execute(() -> {
+            noReply(1, 3);
+            return null;
+        }));
+    }
+
+    @Test
+    void execute_shouldFailWhenRetryExhaustForVoidFunc() {
+        counter.set(4);
+        RetrySync<Void> retrySync = new RetrySync<>(RetryConfig.builder().build());
+        assertThrows(RuntimeException.class, () -> retrySync.execute(() -> {
+            noReply(1, 3);
+            return null;
+        }));
+    }
+
+    private void noReply(int a, int b) {
+        if (counter.decrementAndGet() > 0) {
+            throw new RuntimeException("something went wrong");
+        }
+        System.out.println(a + b);
+    }
+
+    @Test
+    void execute_shouldNotRetryForSkippableException() {
+        RetrySync<String> retrySync = new RetrySync<>(RetryConfig.builder().attempts(3).addSkippableException(TestSkippableException.class).build());
+
+        counter.set(3);
+        assertThrows(TestSkippableException.class, () -> retrySync.execute(this::throwSkippableException));
+
+        counter.set(3);
+        assertThrows(TestSkippableSubException.class, () -> retrySync.execute(this::throwSkippableSubException));
+    }
+
+    @Test
+    void execute_shouldNotRetryForSkippableExceptions() {
+        RetrySync<String> retrySync = new RetrySync<>(RetryConfig.builder().attempts(3).skippableExceptions(List.of(TestSkippableSubException.class)).build());
+
+        counter.set(3);
+        assertDoesNotThrow(() -> retrySync.execute(this::throwSkippableException));
+
+        counter.set(3);
+        assertThrows(TestSkippableSubException.class, () -> retrySync.execute(this::throwSkippableSubException));
+    }
+
+    @Test
+    void execute_shouldRetryOnlyRetryableExceptions() {
+        RetrySync<String> retrySync = new RetrySync<>(RetryConfig.builder().attempts(3).retryableExceptions(List.of(TestSkippableSubException.class)).build());
+
+        counter.set(3);
+        assertThrows(TestSkippableException.class, () -> retrySync.execute(this::throwSkippableException));
+
+        counter.set(3);
+        assertDoesNotThrow(() -> retrySync.execute(this::throwSkippableSubException));
+    }
+
+    @Test
+    void execute_shouldRetryOnlyRetryableException() {
+        RetrySync<String> retrySync = new RetrySync<>(RetryConfig.builder().attempts(3).addRetryableException(TestSkippableSubException.class).build());
+
+        counter.set(3);
+        assertThrows(TestSkippableException.class, () -> retrySync.execute(this::throwSkippableException));
+
+        counter.set(3);
+        assertDoesNotThrow(() -> retrySync.execute(this::throwSkippableSubException));
+    }
+
+    static class TestSkippableException extends RuntimeException {
+    }
+
+    static class TestSkippableSubException extends TestSkippableException {
+    }
+
+    private String throwSkippableException() {
+        if (counter.decrementAndGet() > 0) {
+            throw new TestSkippableException();
+        }
+        return "success";
+    }
+
+    private String throwSkippableSubException() {
+        if (counter.decrementAndGet() > 0) {
+            throw new TestSkippableSubException();
+        }
+        return "success";
+    }
+
 }

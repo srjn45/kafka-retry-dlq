@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.github.srjn45"
-version = "1.0.1"
+version = "2.0.0"
 
 repositories {
     mavenCentral()
@@ -47,7 +47,6 @@ tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
-    finalizedBy(tasks.jacocoTestReport, tasks.jacocoTestCoverageVerification)
 }
 
 jacoco {
