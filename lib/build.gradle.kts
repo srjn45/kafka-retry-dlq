@@ -1,5 +1,7 @@
 plugins {
     `java-library`
+    id("com.diffplug.spotless") version "6.23.0"
+    id("com.github.spotbugs") version "6.1.11"
 }
 
 group = "com.github.srjn45"
@@ -17,14 +19,31 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-// Apply a specific Java toolchain to ease working on different environments.
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
+
+spotbugs {
+    toolVersion.set("4.8.1")
+    ignoreFailures.set(false)
+    effort.set(com.github.spotbugs.snom.Effort.MAX)
+    reportLevel.set(com.github.spotbugs.snom.Confidence.LOW)  // <-- Here use enum, import required
+}
+
+tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
+    reports {
+        create("xml") {
+            required.set(false)
+        }
+        create("html") {
+            required.set(true)
+            outputLocation.set(layout.buildDirectory.file("reports/spotbugs/spotbugs.html"))
+        }
     }
 }
 
 tasks.named<Test>("test") {
-    // Use JUnit Platform for unit tests.
     useJUnitPlatform()
 }
