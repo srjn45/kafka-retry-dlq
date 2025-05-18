@@ -2,6 +2,7 @@ plugins {
     `java-library`
     id("com.diffplug.spotless") version "6.23.0"
     id("com.github.spotbugs") version "6.1.11"
+    jacoco
 }
 
 group = "com.github.srjn45"
@@ -46,4 +47,15 @@ tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        csv.required.set(false)
+        html.required.set(true)
+        html.outputLocation.set(layout.buildDirectory.dir("jacocoHtml"))
+    }
 }
